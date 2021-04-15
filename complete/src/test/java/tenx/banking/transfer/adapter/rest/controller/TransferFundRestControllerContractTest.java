@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tenx.banking.transfer.adapter.rest.dto.PendingTransactionDto;
 import tenx.banking.transfer.core.command.TransferFundCommand;
 import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator;
+import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator.ValidationResult;
 import tenx.banking.transfer.util.DtoToJson;
 
 import java.util.UUID;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static tenx.banking.transfer.core.command.validator.TransferFundCommandValidator.ResultCode;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -75,7 +77,7 @@ public class TransferFundRestControllerContractTest {
     @Test
     public void return422WhenSourceAndTargetAccountAreIdentical() throws Exception {
         when(validator.validate(any(TransferFundCommand.class)))
-                .thenReturn(TransferFundCommandValidator.Result.SAME_ACCOUNT);
+                .thenReturn(new ValidationResult(ResultCode.SAME_ACCOUNT));
 
         mvc.perform(put("/transactions/transaction/" + UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +89,7 @@ public class TransferFundRestControllerContractTest {
     @Test
     public void return402WhenSourceAccountHasInsufficentFund() throws Exception {
         when(validator.validate(any(TransferFundCommand.class)))
-                .thenReturn(TransferFundCommandValidator.Result.INSUFFICIENT_BALANCE_AT_SOURCE);
+                .thenReturn(new ValidationResult(ResultCode.INSUFFICIENT_BALANCE_AT_SOURCE));
 
         mvc.perform(put("/transactions/transaction/" + UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +101,7 @@ public class TransferFundRestControllerContractTest {
     @Test
     public void return422WhenAccountDoNotExist() throws Exception {
         when(validator.validate(any(TransferFundCommand.class)))
-                .thenReturn(TransferFundCommandValidator.Result.ACCOUNT_DO_NOT_EXIST);
+                .thenReturn(new ValidationResult(ResultCode.ACCOUNT_DO_NOT_EXIST));
 
         mvc.perform(put("/transactions/transaction/" + UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -111,7 +113,7 @@ public class TransferFundRestControllerContractTest {
     @Test
     public void return201WhenTransactionAccepted() throws Exception {
         when(validator.validate(any(TransferFundCommand.class)))
-                .thenReturn(TransferFundCommandValidator.Result.ACCEPTED);
+                .thenReturn(new ValidationResult(ResultCode.ACCEPTED));
 
         mvc.perform(put("/transactions/transaction/" + UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)

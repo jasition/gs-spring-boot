@@ -2,6 +2,7 @@ package tenx.banking.transfer.adapter.rest.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import tenx.banking.transfer.adapter.rest.dto.PendingTransactionDto;
 import tenx.banking.transfer.core.command.TransferFundCommand;
 import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator;
-import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator.Result;
+import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator.ResultCode;
+import tenx.banking.transfer.core.command.validator.TransferFundCommandValidator.ValidationResult;
 
 import javax.validation.Valid;
 import java.util.UUID;
@@ -22,6 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class TransferFundRestController {
     private final TransferFundCommandValidator validator;
+    private final ApplicationEventPublisher publisher;
 
     @PutMapping(
             value = "/transactions/transaction/{id}",
@@ -35,15 +38,18 @@ public class TransferFundRestController {
                 transactionId, pendingTransaction);
 
         TransferFundCommand command = pendingTransaction.toCommand(transactionId);
-        Result result = validator.validate(command);
-        HttpStatus status = map(result);
+        ValidationResult result = validator.validate(command);
+
+        HttpStatus status = map(result.getResultCode());
+
+        result.getEvents().forEach(publisher::publishEvent);
 
         log.info("process=put_pending_transaction, status={}, transactionId={}, pendingTransaction={}", status,
                 transactionId, pendingTransaction);
         return new ResponseEntity<>(null, status);
     }
 
-    private HttpStatus map(Result result) {
+    private HttpStatus map(ResultCode result) {
         switch (result) {
             case ACCEPTED:
                 return HttpStatus.CREATED;
